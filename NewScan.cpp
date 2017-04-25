@@ -104,8 +104,8 @@ int NewScan (){
   Float_t prevtrgtime[10];
   long	TEvt = 0;
 
-  TH1F *phistl = new TH1F("hl","hl",Tracelength,0,Tracelength-1);
-  TH1F *phistr = new TH1F("hr","hr",Tracelength,0,Tracelength-1);
+  TH1F *phist1 = new TH1F("h1","h1",Tracelength,0,Tracelength-1);
+  TH1F *phist2 = new TH1F("h2","h2",Tracelength,0,Tracelength-1);
 
   TSpectrum *s = new TSpectrum();
 	
@@ -115,11 +115,11 @@ int NewScan (){
    */
         
   float cal[5] = 
-    {   0.0833,
-	0.0815,
-	0.0753,
-	0.1574,
-	0.1227
+    {   1.0,
+	1.0,
+	1.0,
+	1.0,
+	1.0
     }; // calibration (keVee / (bit * sample)) from manual check on calibration
     
     
@@ -248,16 +248,8 @@ int NewScan (){
 		  pulse[i] = 16383 - atof(line.c_str());
 
 		  switch(j) {
-		  case 0 : phistl->SetBinContent(i, pulse[i]); break;
-		  case 1 : phistr->SetBinContent(i, pulse[i]); break;
-		  case 2 : phistl->SetBinContent(i, pulse[i]); break;
-		  case 3 : phistr->SetBinContent(i, pulse[i]); break;
-		  case 4 : phistl->SetBinContent(i, pulse[i]); break;
-		  case 5 : phistr->SetBinContent(i, pulse[i]); break;
-		  case 6 : phistl->SetBinContent(i, pulse[i]); break;
-		  case 7 : phistr->SetBinContent(i, pulse[i]); break;
-		  case 8 : phistl->SetBinContent(i, pulse[i]); break;
-		  case 9 : phistr->SetBinContent(i, pulse[i]); break;
+		  case 0 : phist1->SetBinContent(i, pulse[i]); break;
+		  case 1 : phist2->SetBinContent(i, pulse[i]); break;
 		  }
                 
 		  if (j < 10)
@@ -289,15 +281,20 @@ int NewScan (){
 	    }
 	  switch(j) {
 	  case 0 : 
-	    det1.al = amplitude;
-	    det1.ll = paraL;
-	    det1.sl = paraS;
-	    det1.tl = CFD;
-	    det1.trgl = trg;
-	    det1.ppl = pposition;
-		                    
-	    det1.apl = ap;
+	    det0.amp = amplitude;
+	    det0.l = paraL;
+	    det0.s = paraS;
+	    det0.time = CFD;
+	    det0.trg = trg;
+			                    
+	    det0.ap = ap;
    
+	    det0.l = sqrt(det0.l * det0.l)*cal[0];
+	    det0.s = sqrt(det0.s * det0.s)*cal[0];
+	    det0.psd = det0.s / det0.l;
+	    if (det0.trg){ det0.trg = 1;}
+	    else {det0.trg = 0;}
+
 	    // Runtime clock
 	    difftime = trgtime - prevtime;
 	    if(difftime < 0) { 
@@ -311,260 +308,40 @@ int NewScan (){
 	    }
                     
 	    //Time trigger difference
-	    det1.tdl = trgtime - prevtrgtime[0];
-	    if(det1.tdl < 0) { det1.tdl = (8*(det1.tdl + 2147483647))/1.0E3; prevtrgtime[0] = trgtime;}
-	    else { det1.tdl = (8*(det1.tdl))/1.0E3; prevtrgtime[0] = trgtime;}
+	    det0.td = trgtime - prevtrgtime[0];
+	    if(det0.td < 0) { det0.td = (8*(det0.td + 2147483647))/1.0E3; prevtrgtime[0] = trgtime;}
+	    else { det0.td = (8*(det0.td))/1.0E3; prevtrgtime[0] = trgtime;}
                     
 	    break;
+
 	  case 1 : 
-	    det1.ar = amplitude;
-	    det1.lr = paraL;
-	    det1.sr = paraS;
-	    det1.tr = CFD;
-	    det1.trgr = trg;
-	    det1.ppr = pposition;
-		    
-	    det1.apr = ap;
+	    det1.amp = amplitude;
+	    det1.l = paraL;
+	    det1.s = paraS;
+	    det1.time = CFD;
+	    det1.trg = trg;
+			    
+	    det1.ap = ap;
                     
-	    det1.l = sqrt(det1.ll * det1.lr)*cal[0];
-	    det1.s = sqrt(det1.sl * det1.sr)*cal[0];
+	    det1.l = sqrt(det1.l * det1.l)*cal[1];
+	    det1.s = sqrt(det1.s * det1.s)*cal[1];
 	    det1.psd = det1.s / det1.l;
-	    det1.time = (4.0/2.0) * (det1.tl + det1.tr);
-	    det1.position = (det1.ll - det1.lr)/(det1.ll + det1.lr)*19.56;
-	    if (det1.trgl && det1.trgr)
-	      {
-		det1.trg = 1; 
-		multi++;
-	      }
+	    if (det1.trg){ det1.trg = 1;}
 	    else {det1.trg = 0;}
-	    det1.dpsd = (det1.sl/det1.ll) - (det1.sr/det1.lr);
-                    
+	                     
 	    //Time trigger difference
-	    det1.tdr = trgtime - prevtrgtime[1];
-	    if(det1.tdr < 0) { det1.tdr = (8*(det1.tdr + 2147483647))/1.0E3; prevtrgtime[1] = trgtime;}
-	    else { det1.tdr = (8*(det1.tdr))/1.0E3; prevtrgtime[1] = trgtime;}
+	    det1.td = trgtime - prevtrgtime[1];
+	    if(det1.td < 0) { det1.td = (8*(det1.td + 2147483647))/1.0E3; prevtrgtime[1] = trgtime;}
+	    else { det1.td = (8*(det1.td))/1.0E3; prevtrgtime[1] = trgtime;}
 
 	    // Noise and after pulsing detection
-	    if (det1.trg && det1.al<15500 && det1.ar<15500 && det1.psd > (egate[0][0]/sqrt(det1.l) + egate[0][1]*det1.l + egate[0][2]))
+	    if (det1.trg && det1.amp<15500 && det1.psd > (egate[0][0]/sqrt(det1.l) + egate[0][1]*det1.l + egate[0][2]))
 	      {
-		det1.npl = s->Search(phistl, 2.0, "", 0.05);
-		det1.npr = s->Search(phistr, 2.0, "", 0.05);
+		det1.np = s->Search(phist1, 2.0, "", 0.05);
 	      }
-	    else { det1.npl = -1; det1.npr = -1; }
+	    else { det1.np = -1; }
+       	    break;
 
-                    
-	    break;
-	  case 2 : 
-	    det2.al = amplitude;
-	    det2.ll = paraL;
-	    det2.sl = paraS;
-	    det2.tl = CFD;
-	    det2.trgl = trg;
-	    det2.ppl = pposition;
-                    
-	    det2.apl = ap;
-                    
-	    //Time trigger difference
-	    det2.tdl = trgtime - prevtrgtime[2];
-	    if(det2.tdl < 0) { det2.tdl = (8*(det2.tdl + 2147483647))/1.0E3; prevtrgtime[2] = trgtime;}
-	    else { det2.tdl = (8*(det2.tdl))/1.0E3; prevtrgtime[2] = trgtime;}
-                    
-	    break;
-	  case 3 : 
-	    det2.ar = amplitude;
-	    det2.lr = paraL;
-	    det2.sr = paraS;
-	    det2.tr = CFD;
-	    det2.trgr = trg;
-	    det2.ppr = pposition;
-                    
-	    det2.apr = ap;
-                    
-	    det2.l = sqrt(det2.ll * det2.lr)*cal[1];
-	    det2.s = sqrt(det2.sl * det2.sr)*cal[1];
-	    det2.psd = det2.s / det2.l;
-	    det2.time = (4.0/2.0) * (det2.tl + det2.tr);
-	    det2.position = (det2.ll - det2.lr)/(det2.ll + det2.lr)*19.56;
-	    if (det2.trgl && det2.trgr)
-	      {
-		det2.trg = 1; 
-		multi++;
-	      }
-	    else {det2.trg = 0;}
-	    det3.dpsd = (det3.sl/det3.ll) - (det3.sr/det3.lr);
-                    
-	    //Time trigger difference
-	    det2.tdr = trgtime - prevtrgtime[3];
-	    if(det2.tdr < 0) { det2.tdr = (8*(det2.tdr + 2147483647))/1.0E3; prevtrgtime[3] = trgtime;}
-	    else { det2.tdr = (8*(det2.tdr))/1.0E3; prevtrgtime[3] = trgtime;}
-
-	    // Noise and after pulsing detection
-	    if (det2.trg && det2.al<15500 && det2.ar<15500 && det2.psd > (egate[1][0]/sqrt(det2.l) + egate[1][1]*det2.l + egate[1][2]))
-	      {
-		det2.npl = s->Search(phistl, 2.0, "", 0.05);
-		det2.npr = s->Search(phistr, 2.0, "", 0.05);
-	      }
-	    else { det2.npl = -1; det2.npr = -1; }
-                    
-	    break;
-	  case 4 : 
-	    det3.al = amplitude;
-	    det3.ll = paraL;
-	    det3.sl = paraS;
-	    det3.tl = CFD;
-	    det3.trgl = trg;
-	    det3.ppl = pposition;
-                    
-	    det3.apl = ap;
-                    
-	    //Time trigger difference
-	    det3.tdl = trgtime - prevtrgtime[4];
-	    if(det3.tdl < 0) { det3.tdl = (8*(det3.tdl + 2147483647))/1.0E3; prevtrgtime[4] = trgtime;}
-	    else { det3.tdl = (8*(det3.tdl))/1.0E3; prevtrgtime[4] = trgtime;}
-                    
-	    break;
-	  case 5 : 
-	    det3.ar = amplitude;
-	    det3.lr = paraL;
-	    det3.sr = paraS;
-	    det3.tr = CFD;
-	    det3.trgr = trg;
-	    det3.ppr = pposition;
-
-	    det3.apr = ap;
-                    
-	    det3.l = sqrt(det3.ll * det3.lr)*cal[2];
-	    det3.s = sqrt(det3.sl * det3.sr)*cal[2];
-	    det3.psd = det3.s / det3.l;
-	    det3.time = (4.0/2.0) * (det3.tl + det3.tr);
-	    det3.position = (det3.ll - det3.lr)/(det3.ll + det3.lr)*19.56;
-	    if (det3.trgl && det3.trgr)
-	      {
-		det3.trg = 1; 
-		multi++;
-	      }
-	    else {det3.trg = 0;}
-	    det4.dpsd = (det4.sl/det4.ll) - (det4.sr/det4.lr);
-                    
-	    //Time trigger difference
-	    det3.tdr = trgtime - prevtrgtime[5];
-	    if(det3.tdr < 0) { det3.tdr = (8*(det3.tdr + 2147483647))/1.0E3; prevtrgtime[5] = trgtime;}
-	    else { det3.tdr = (8*(det3.tdr))/1.0E3; prevtrgtime[5] = trgtime;}
-
-	    // Noise and after pulsing detection
-	    if (det3.trg && det3.al<15500 && det3.ar<15500 && det3.psd > (egate[2][0]/sqrt(det3.l) + egate[2][1]*det3.l + egate[2][2]))
-	      {
-		det3.npl = s->Search(phistl, 2.0, "", 0.05);
-		det3.npr = s->Search(phistr, 2.0, "", 0.05);
-	      }
-	    else { det3.npl = -1; det3.npr = -1; }
-                    
-	    break;
-	  case 6 : 
-	    det4.al = amplitude;
-	    det4.ll = paraL;
-	    det4.sl = paraS;
-	    det4.tl = CFD;
-	    det4.trgl = trg;
-	    det4.ppl = pposition;
-                    
-	    det4.apl = ap;
-                    
-	    //Time trigger difference
-	    det4.tdl = trgtime - prevtrgtime[6];
-	    if(det4.tdl < 0) { det4.tdl = (8*(det4.tdl + 2147483647))/1.0E3; prevtrgtime[6] = trgtime;}
-	    else { det4.tdl = (8*(det4.tdl))/1.0E3; prevtrgtime[6] = trgtime;}
-                    
-	    break;
-	  case 7 : 
-	    det4.ar = amplitude;
-	    det4.lr = paraL;
-	    det4.sr = paraS;
-	    det4.tr = CFD;
-	    det4.trgr = trg;
-	    det4.ppr = pposition;
-		    
-	    det4.apr = ap;
-                    
-	    det4.l = sqrt(det4.ll * det4.lr)*cal[3];
-	    det4.s = sqrt(det4.sl * det4.sr)*cal[3];
-	    det4.psd = det4.s / det4.l;
-	    det4.time = (4.0/2.0) * (det4.tl + det4.tr);
-	    det4.position = (det4.ll - det4.lr)/(det4.ll + det4.lr)*19.56;
-	    if (det4.trgl && det4.trgr)
-	      {
-		det4.trg = 1; 
-		multi++;
-	      }
-	    else {det4.trg = 0;}
-                    
-	    //Time trigger difference
-	    det4.tdr = trgtime - prevtrgtime[7];
-	    if(det4.tdr < 0) { det4.tdr = (8*(det4.tdr + 2147483647))/1.0E3; prevtrgtime[7] = trgtime;}
-	    else { det4.tdr = (8*(det4.tdr))/1.0E3; prevtrgtime[7] = trgtime;}
-
-	    // Noise and after pulsing detection
-	    if (det4.trg && det4.al<15500 && det4.ar<15500 && det4.psd > (egate[3][0]/sqrt(det4.l) + egate[3][1]*det4.l + egate[3][2]))
-	      {
-		det4.npl = s->Search(phistl, 2.0, "", 0.05);
-		det4.npr = s->Search(phistr, 2.0, "", 0.05);
-	      }
-	    else { det4.npl = -1; det4.npr = -1; }
-                    
-	    break;
-	  case 8 : 
-	    det5.al = amplitude;
-	    det5.ll = paraL;
-	    det5.sl = paraS;
-	    det5.tl = CFD;
-	    det5.trgl = trg;
-	    det5.ppl = pposition;
-                    
-	    det5.apl = ap;
-                    
-	    //Time trigger difference
-	    det5.tdl = trgtime - prevtrgtime[8];
-	    if(det5.tdl < 0) { det5.tdl = (8*(det5.tdl + 2147483647))/1.0E3; prevtrgtime[8] = trgtime;}
-	    else { det5.tdl = (8*(det5.tdl))/1.0E3; prevtrgtime[8] = trgtime;}
-                    
-	    break;
-	  case 9 : 
-	    det5.ar = amplitude;
-	    det5.lr = paraL;
-	    det5.sr = paraS;
-	    det5.tr = CFD;
-	    det5.trgr = trg;
-	    det5.ppr = pposition;
-                    
-	    det5.apr = ap;
-                    
-	    det5.l = sqrt(det5.ll * det5.lr)*cal[4];
-	    det5.s = sqrt(det5.sl * det5.sr)*cal[4];
-	    det5.psd = det5.s / det5.l;
-	    det5.time = (4.0/2.0) * (det5.tl + det5.tr);
-	    det5.position = (det5.ll - det5.lr)/(det5.ll + det5.lr)*19.56;
-	    if (det5.trgl && det5.trgr)
-	      {
-		det5.trg = 1; 
-		multi++;
-	      }
-	    else {det5.trg = 0;}
-	    det5.dpsd = (det5.sl/det5.ll) - (det5.sr/det5.lr);
-                    
-	    //Time trigger difference
-	    det5.tdr = trgtime - prevtrgtime[9];
-	    if(det5.tdr < 0) { det5.tdr = (8*(det5.tdr + 2147483647))/1.0E3; prevtrgtime[9] = trgtime;}
-	    else { det5.tdr = (8*(det5.tdr))/1.0E3; prevtrgtime[9] = trgtime;}
-
-	    // Noise and after pulsing detection
-	    if (det5.trg && det5.al<15500 && det5.ar<15500 && det5.psd > (egate[4][0]/sqrt(det5.l) + egate[4][1]*det5.l + egate[4][2]))
-	      {
-		det5.npl = s->Search(phistl, 2.0, "", 0.05);
-		det5.npr = s->Search(phistr, 2.0, "", 0.05);
-	      }
-	    else { det5.npl = -1; det5.npr = -1; }
-                    
-	    break;
 	  case 10 : 
 	    beamSweeper = pulse[0];
 	    break;
