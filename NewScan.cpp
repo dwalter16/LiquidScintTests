@@ -69,7 +69,7 @@ int NewScan (){
     trg,
     data;
 	
-  float	X, Y, beamSweeper;
+  float	X;
   int	npeaks, multi, ap;
 	
   ifstream fp[16];
@@ -89,10 +89,7 @@ int NewScan (){
     CFD,
     paraL,
     paraS,
-    runtime,
-    FC,
-    vll, vlr,
-    val, var, hagA, hagL;
+    runtime;
 			
   char 	filename[250],		
     prompt[10],
@@ -184,16 +181,7 @@ int NewScan (){
   
   tt->Branch("runtime",&runtime,"runtime/F");     // Runtime in ms
     
-  tt->Branch("vll",&vll,"vll/F");
-  tt->Branch("vlr",&vlr,"vlr/F");
-  tt->Branch("val",&val,"val/F");
-  tt->Branch("var",&var,"var/F");
-	
-  tt->Branch("hagA",&hagA,"hagA/F");
-  tt->Branch("hagL",&hagL,"hagL/F");
-  //cout << "File to read: ";
-  //cin >> openfile;up and higher accuracy.
-    
+  	
   // Open files
   for (i = 0; i < 1; i++)
   {
@@ -217,9 +205,8 @@ int NewScan (){
   while (data)
     {
       multi = 0;
-      beamSweeper = -1;
+      
       X = -1;
-      Y = -1;
       ap = 0;
       beamON = 0;
       for (j = 0; j < 1; j++)
@@ -271,18 +258,10 @@ int NewScan (){
 		  Analysis->PSD_Integration_Afterpulsing(pulse, Tracelength, 12, 50, 5, 15, 50, &pposition, &paraL, &paraS, &ap);
 
 		}
-            
-	      /** Veto panel processing **/
-	      if(Tracelength > 1 && j > 12)
-		{
-		  // Process trace
-		  Analysis->Baseline_restore(pulse, baseline, Tracelength, 10, 3); 
-		  Analysis->Parameters(pulse, Tracelength, 3, &CFD, &amplitude, &risetime, &falltime, &width);
-                
-		  // Note this method has been updated to including after pulsing detection
-		  Analysis->PSD_Integration_Afterpulsing(pulse, Tracelength, 12, 50, 5, 15, 50, &pposition, &paraL, &paraS, &ap);
-		}
+	      
 	    }
+	  
+
 	  switch(j) {
 	  case 0 : 
 	    det1.amp = amplitude;
@@ -346,32 +325,15 @@ int NewScan (){
 	    else { det2.np = -1; }
        	    break;
 
-	  case 10 : 
-	    beamSweeper = pulse[0];
-	    break;
-	  case 11 :
-	    FC = pulse[0];
-	    break;
-	  case 12 :
-	    Y = pulse[0];
-	    break;
-	  case 13 :
-	    vll = paraL;
-	    val = amplitude;
-	    break;
-	  case 14 :
-	    vlr = paraL;
-	    var = amplitude;
-	    break;
-	  case 15 :
-	    hagA = amplitude;
-	    hagL = paraL;
-	    break;            }
+	  
+	  
+	  
+	  }
                
             
             
         }
-    
+      
       //if (TEvt > 100) {data = 0;}
 	
       tt->Fill();
