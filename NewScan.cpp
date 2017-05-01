@@ -198,7 +198,7 @@ int NewScan (){
   for (i = 0; i < 1; i++)
   {
     //sprintf(openfile, "%s_wave%d.txt", prefix, i);
-    sprintf(openfile, "/Users/david/Desktop/LiquidTests/Data/%s", prefix);
+    sprintf(openfile, "./%s", prefix);
     
     cout << " Opening file: " << openfile << endl;
     fp[i].open(openfile, std::ifstream::in);
