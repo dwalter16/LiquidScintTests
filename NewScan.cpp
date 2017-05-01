@@ -179,12 +179,13 @@ int NewScan (){
 
   TTree *tt = new TTree("T","Liquid Scintillator Tests");
 	
-  tt->Branch("can1",&can1,"l:s:amp::time:psd:trg::ap:td:pp:np");
-  tt->Branch("can2",&can2,"l:s:amp::time:psd:trg::ap:td:pp:np");
+  tt->Branch("det1",&det1,"l:s:amp::time:psd:trg::ap:td:pp:np");
+  tt->Branch("det2",&det2,"l:s:amp::time:psd:trg::ap:td:pp:np");
   
   tt->Branch("runtime",&runtime,"runtime/F");     // Runtime in ms
     
-  tt->Branch("vl",&vl,"vl/F");
+  tt->Branch("vll",&vll,"vll/F");
+  tt->Branch("vlr",&vlr,"vlr/F");
   tt->Branch("val",&val,"val/F");
   tt->Branch("var",&var,"var/F");
 	
@@ -197,7 +198,7 @@ int NewScan (){
   for (i = 0; i < 1; i++)
     {
       //sprintf(openfile, "%s_wave%d.txt", prefix, i);
-      sprintf(openfile, "BillsDet_1500V_cf%s.txt", prefix);
+      sprintf(openfile, "~/Desktop//LiquidTests/Data/run1_wave%s.txt", prefix);
       fp[i].open(openfile, std::ifstream::in);
     }
     
@@ -281,19 +282,19 @@ int NewScan (){
 	    }
 	  switch(j) {
 	  case 0 : 
-	    det0.amp = amplitude;
-	    det0.l = paraL;
-	    det0.s = paraS;
-	    det0.time = CFD;
-	    det0.trg = trg;
+	    det1.amp = amplitude;
+	    det1.l = paraL;
+	    det1.s = paraS;
+	    det1.time = CFD;
+	    det1.trg = trg;
 			                    
-	    det0.ap = ap;
+	    det1.ap = ap;
    
-	    det0.l = sqrt(det0.l * det0.l)*cal[0];
-	    det0.s = sqrt(det0.s * det0.s)*cal[0];
-	    det0.psd = det0.s / det0.l;
-	    if (det0.trg){ det0.trg = 1;}
-	    else {det0.trg = 0;}
+	    det1.l = sqrt(det1.l * det1.l)*cal[0];
+	    det1.s = sqrt(det1.s * det1.s)*cal[0];
+	    det1.psd = det1.s / det1.l;
+	    if (det1.trg){ det1.trg = 1;}
+	    else {det1.trg = 0;}
 
 	    // Runtime clock
 	    difftime = trgtime - prevtime;
@@ -308,38 +309,38 @@ int NewScan (){
 	    }
                     
 	    //Time trigger difference
-	    det0.td = trgtime - prevtrgtime[0];
-	    if(det0.td < 0) { det0.td = (8*(det0.td + 2147483647))/1.0E3; prevtrgtime[0] = trgtime;}
-	    else { det0.td = (8*(det0.td))/1.0E3; prevtrgtime[0] = trgtime;}
+	    det1.td = trgtime - prevtrgtime[0];
+	    if(det1.td < 0) { det1.td = (8*(det1.td + 2147483647))/1.0E3; prevtrgtime[0] = trgtime;}
+	    else { det1.td = (8*(det1.td))/1.0E3; prevtrgtime[0] = trgtime;}
                     
 	    break;
 
 	  case 1 : 
-	    det1.amp = amplitude;
-	    det1.l = paraL;
-	    det1.s = paraS;
-	    det1.time = CFD;
-	    det1.trg = trg;
+	    det2.amp = amplitude;
+	    det2.l = paraL;
+	    det2.s = paraS;
+	    det2.time = CFD;
+	    det2.trg = trg;
 			    
-	    det1.ap = ap;
+	    det2.ap = ap;
                     
-	    det1.l = sqrt(det1.l * det1.l)*cal[1];
-	    det1.s = sqrt(det1.s * det1.s)*cal[1];
-	    det1.psd = det1.s / det1.l;
-	    if (det1.trg){ det1.trg = 1;}
-	    else {det1.trg = 0;}
+	    det2.l = sqrt(det2.l * det2.l)*cal[1];
+	    det2.s = sqrt(det2.s * det2.s)*cal[1];
+	    det2.psd = det2.s / det2.l;
+	    if (det2.trg){ det2.trg = 1;}
+	    else {det2.trg = 0;}
 	                     
 	    //Time trigger difference
-	    det1.td = trgtime - prevtrgtime[1];
-	    if(det1.td < 0) { det1.td = (8*(det1.td + 2147483647))/1.0E3; prevtrgtime[1] = trgtime;}
-	    else { det1.td = (8*(det1.td))/1.0E3; prevtrgtime[1] = trgtime;}
+	    det2.td = trgtime - prevtrgtime[1];
+	    if(det2.td < 0) { det2.td = (8*(det2.td + 2147483647))/1.0E3; prevtrgtime[1] = trgtime;}
+	    else { det2.td = (8*(det2.td))/1.0E3; prevtrgtime[1] = trgtime;}
 
 	    // Noise and after pulsing detection
-	    if (det1.trg && det1.amp<15500 && det1.psd > (egate[0][0]/sqrt(det1.l) + egate[0][1]*det1.l + egate[0][2]))
+	    if (det2.trg && det2.amp<15500 && det2.psd > (egate[0][0]/sqrt(det2.l) + egate[0][1]*det2.l + egate[0][2]))
 	      {
-		det1.np = s->Search(phist1, 2.0, "", 0.05);
+		det2.np = s->Search(phist1, 2.0, "", 0.05);
 	      }
-	    else { det1.np = -1; }
+	    else { det2.np = -1; }
        	    break;
 
 	  case 10 : 

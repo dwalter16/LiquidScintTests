@@ -498,14 +498,14 @@ int PulseAnalysis::PeakFinder (float* pulse, int length, int sigma, int range, i
 	for (i = 0; i < length - 1; i++)
 	{
 		pulse_temp[i] = pulse[i + 1] - pulse[i];
-		x =+ pulse_temp[i];
+		x += pulse_temp[i];
 	}
 	
 	
 	// Determine standard deviation of baseline
 	x = x/range;
 	z = 0;
-	for (i = 0; i < range; i++) { z =+ pow((pulse_temp[i] - x), 2); }
+	for (i = 0; i < range; i++) { z += pow((pulse_temp[i] - x), 2); }
 	z = sqrt(z/range);
 	
 	*numPeaks = 0;
