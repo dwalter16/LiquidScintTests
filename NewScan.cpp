@@ -45,14 +45,14 @@ typedef struct
 {
   Float_t l;               // Long integral sqrt(ll*lr)
   Float_t s;               // Short integral sqrt(sl*sr)
-  Float_t amp;              // Amplitude
+  Float_t amp;             // Amplitude
   Float_t time;            // Trigger time 
   Float_t psd;             // PSD parameter s/l
   Float_t trg;             // Det trigger
-  Float_t ap;             // Bar right after pulsing detected
-  Float_t td;             // Time since last trigger  (us)
-  Float_t pp;             // Position of max amplitude 
-  Float_t np;             // Number of peaks 
+  Float_t ap;              // Bar after pulsing detected
+  Float_t td;              // Time since last trigger  (us)
+  Float_t pp;              // Position of max amplitude 
+  Float_t np;              // Number of peaks 
 
 } Det;
 
@@ -172,15 +172,15 @@ int NewScan (){
   cout << "Root file name to be created: ";
   cin >> filename;
     
-  cout << "Run file prefix: ";
+  cout << "Run file name: ";
   cin >> prefix;
 
   TFile *ff = new TFile(filename,"RECREATE");
 
   TTree *tt = new TTree("T","Liquid Scintillator Tests");
 	
-  tt->Branch("det1",&det1,"l:s:amp::time:psd:trg::ap:td:pp:np");
-  tt->Branch("det2",&det2,"l:s:amp::time:psd:trg::ap:td:pp:np");
+  tt->Branch("det1",&det1,"l:s:amp:time:psd:trg:ap:td:pp:np");
+  tt->Branch("det2",&det2,"l:s:amp:time:psd:trg:ap:td:pp:np");
   
   tt->Branch("runtime",&runtime,"runtime/F");     // Runtime in ms
     
@@ -196,11 +196,14 @@ int NewScan (){
     
   // Open files
   for (i = 0; i < 1; i++)
-    {
-      //sprintf(openfile, "%s_wave%d.txt", prefix, i);
-      sprintf(openfile, "~/Desktop//LiquidTests/Data/run1_wave%s.txt", prefix);
-      fp[i].open(openfile, std::ifstream::in);
-    }
+  {
+    //sprintf(openfile, "%s_wave%d.txt", prefix, i);
+    sprintf(openfile, "/Users/david/Desktop/LiquidTests/Data/%s", prefix);
+    
+    cout << " Opening file: " << openfile << endl;
+    fp[i].open(openfile, std::ifstream::in);
+    
+  }
     
   data = 1;
   runtime = 0;
@@ -221,14 +224,14 @@ int NewScan (){
       beamON = 0;
       for (j = 0; j < 1; j++)
 	{
-
+	  if(!fp[j].is_open()){data = 0; cout << "Could not open file!!" << endl;}
 	  if(fp[j].is_open())
 	    {
 	      if (!getline(fp[j], line)) {data=0; break; } // Record length
 	      getline(fp[j], line); // Channel number
 	      getline(fp[j], line); // Event number
 	      getline(fp[j], line); // Trigger time stamp
-            
+     	      
 	      // Trigger time in 2 ADC clock cycles ( 8 ns )
 	      if (j == 0)
                 trgtime = atof(line.substr(line.find_last_of(" "),line.length()).c_str());
@@ -242,7 +245,7 @@ int NewScan (){
 	      pposition = -1;
 	      npeaks = 0;
             
-	      // Get trace
+	      // Get traces
 	      for (i = 0; i < Tracelength; i++)
 		{
 		  if (!getline(fp[j], line)) {data = 0; break;}
@@ -380,8 +383,8 @@ int NewScan (){
 	
   for (i = 0; i < 15; i++)
     {
-      if(fp[i].is_open())
-	fp[i].close();
+      if(fp[j].is_open())
+	fp[j].close();
     }
   ff->cd(); tt->Write(); 
   ff->Close();
