@@ -8,9 +8,9 @@ To compile:
 
    g++ -03 -pedantic -o Scan.exe 'root-config --cflags --libs' -lSpectrum NewScan.cpp
 
-       - if errors compiling in Mac OSX
-       	 - remove -03 option
-	 - clang++ instead of g++
-	 - $(root-config --clfags --libs) instead of 'root-config --cflags --libs
+- if errors compiling in Mac OSX
+  - remove -03 option
+  - clang++ instead of g++
+  - $(root-config --clfags --libs) instead of 'root-config --cflags --libs
 
 - if "error while loading shared libriaries: libcore.so: ..." occurs, type "source 'root-config --prefix'/bin/thisroot.sh"
