@@ -276,7 +276,7 @@ int PulseAnalysis::PSD_Integration (float* pulse, int length, int start, int sto
 				// Adjust for error due to array indexing (i.e. rounding)
 				if (x < k + offset)
 				{
-					//integralS =+ ((pulse[k + offset] - pulse[k + offset-1])*x*0.5) + ((x - (float)(k + offset))*pulse[k + offset-1]); 
+					//integralS += ((pulse[k + offset] - pulse[k + offset-1])*x*0.5) + ((x - (float)(k + offset))*pulse[k + offset-1]); 
 				}
 				
 			}
