@@ -96,8 +96,9 @@ int Scanner (){
 			 
 	string 	line;
 	
+	/// Tracelength increased from 100 to 300 (1200us) for liquid cell tests
 	int		i,j, pposition,
-			Tracelength = 100;
+			Tracelength = 300;
 			
 	float 	pulse[500],
             SG_pulse[500],
@@ -204,21 +205,21 @@ int Scanner (){
 	TFile *ff = new TFile(filename,"RECREATE");
 
 	TTree *tt = new TTree("T","n-ToF");
-    TH1F *trace0 = new TH1F("trace0","Trace for channel 0",100,0,400);
-    TH1F *trace1 = new TH1F("trace1","Trace for channel 1",100,0,400);
-    TH1F *trace2 = new TH1F("trace2","Trace for channel 2",100,0,400);
-    TH1F *trace3 = new TH1F("trace3","Trace for channel 3",100,0,400);
-    TH1F *trace4 = new TH1F("trace4","Trace for channel 4",100,0,400);
-    TH1F *trace5 = new TH1F("trace5","Trace for channel 5",100,0,400);
-    TH1F *trace6 = new TH1F("trace6","Trace for channel 6",100,0,400);
-    TH1F *trace7 = new TH1F("trace7","Trace for channel 7",100,0,400);
-    TH1F *trace8 = new TH1F("trace8","Trace for channel 8",100,0,400);
-    TH1F *trace9 = new TH1F("trace9","Trace for channel 9",100,0,400);
+    TH1F *trace0 = new TH1F("trace0","Trace for channel 0",300,0,1200);
+    TH1F *trace1 = new TH1F("trace1","Trace for channel 1",300,0,1200);
+    TH1F *trace2 = new TH1F("trace2","Trace for channel 2",300,0,1200);
+    TH1F *trace3 = new TH1F("trace3","Trace for channel 3",300,0,1200);
+    TH1F *trace4 = new TH1F("trace4","Trace for channel 4",300,0,1200);
+    TH1F *trace5 = new TH1F("trace5","Trace for channel 5",300,0,1200);
+    TH1F *trace6 = new TH1F("trace6","Trace for channel 6",300,0,1200);
+    TH1F *trace7 = new TH1F("trace7","Trace for channel 7",300,0,1200);
+    TH1F *trace8 = new TH1F("trace8","Trace for channel 8",300,0,1200);
+    TH1F *trace9 = new TH1F("trace9","Trace for channel 9",300,0,1200);
     
-    TH1F *trace0_SG = new TH1F("trace0_SG","Trace for channel 0",100,0,400);
-    TH1F *trace0_SG_derv2 = new TH1F("trace0_SG_derv2","Trace for channel 0",100,0,400);
+    TH1F *trace0_SG = new TH1F("trace0_SG","Trace for channel 0",300,0,1200);
+    TH1F *trace0_SG_derv2 = new TH1F("trace0_SG_derv2","Trace for channel 0",300,0,1200);
     
-	tt->Branch("can_start",&can_start,"l:s:a:cfd:psd:tac");
+    tt->Branch("can_start",&can_start,"l:s:a:cfd:psd:tac");
     tt->Branch("can_stop",&can_stop,"l:s:a:cfd:psd:tac");
     tt->Branch("runtime",&runtime,"runtime/F");     // Runtime in ms
     
@@ -237,13 +238,13 @@ int Scanner (){
     tt->Branch("trace0_SG_derv2","TH1F",&trace0_SG_derv2);
     
 	cout << "File to read: ";
-	cin >> openfile;
+	cin >> prefix;
     
     // Open files
-    for (i = 0; i < 1; i++)
+    for (i = 0; i < 2; i++)
     {
-        //sprintf(openfile, "%s_wave%d.txt
-        fp[i].open(openfile, std::ifstream::in);
+      sprintf(openfile, "./%s/run0_wave%d.txt",prefix, i);
+      fp[i].open(openfile, std::ifstream::in);
     }
     
 	data = 1;
@@ -263,7 +264,7 @@ int Scanner (){
         Y = -1;
         ap = 0;
         beamON = 0;
-    for (j = 0; j < 1; j++)
+    for (j = 0; j < 2; j++)
     {
 
         if(fp[j].is_open())
@@ -371,6 +372,24 @@ int Scanner (){
                     
                     break;
                 case 1 : 
+                    can_start.a = amplitude;
+                    can_start.l = paraL;
+                    can_start.s = paraS;
+                    can_start.psd = paraS/paraL;
+                    can_start.cfd = CFD;
+                    can_start.tac = tac;
+
+                    // Runtime clock
+                    difftime = trgtime - prevtime;
+                    if(difftime < 0) { 
+                        difftime = difftime + 2147483647;
+                        runtime += ((8*difftime)/1.0E6);
+                        prevtime = trgtime;
+                    }
+                    else {                
+                        runtime += ((8*difftime)/1.0E6);
+                        prevtime = trgtime;
+                    }
                     
                     break;
                

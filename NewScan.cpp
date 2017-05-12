@@ -46,15 +46,13 @@ typedef struct
   Float_t l;               // Long integral sqrt(ll*lr)
   Float_t s;               // Short integral sqrt(sl*sr)
   Float_t amp;             // Amplitude
-  Float_t time;            // Trigger time 
+  Float_t cfd;             // Trigger time 
   Float_t psd;             // PSD parameter s/l
   Float_t trg;             // Det trigger
-  Float_t ap;              // Bar after pulsing detected
-  Float_t td;              // Time since last trigger  (us)
+  Float_t tac;             // Zero-crossing timing used for PSD
   Float_t pp;              // Position of max amplitude 
-  Float_t np;              // Number of peaks 
 
-} Det;
+} Can;
 
 int NewScan (){
 	
@@ -63,34 +61,43 @@ int NewScan (){
    *	Variable declairation
    *   ---------------------------------------------------- 
    */
-  static Det det1, det2;
+  static Can det1, det2;
 		
   bool	beamON,
     trg,
     data;
 	
   float	X;
-  int	npeaks, multi, ap;
+  int	multi;
 	
   ifstream fp[16];
 			 
   string 	line;
-	
-  int		i,j, pposition,
-    Tracelength = 100;
+
+  /// Tracelength increased from 100 to 300 (1200us) for liquid cell tests
+  int i,j, pposition,
+    Tracelength = 300;
 			
-  float 	pulse[500],
+  float pulse[500],
+    SG_pulse[500],
+    SGderv2_pulse[500],
     baseline[500];
 			
-  Float_t	amplitude,
+  Float_t amplitude,
     risetime,
     falltime,
     width,
     CFD,
+    tac,
     paraL,
     paraS,
     runtime;
-			
+	
+  // For SG filtered pulse
+  Float_t trace_min, trace_max;
+  int trace_min_loc, trace_max_loc;
+  bool zero_cross;
+  
   char 	filename[250],		
     prompt[10],
     openfile[250],
@@ -100,9 +107,6 @@ int NewScan (){
   Float_t trgtime, prevtime, difftime;
   Float_t prevtrgtime[10];
   long	TEvt = 0;
-
-  TH1F *phist1 = new TH1F("h1","h1",Tracelength,0,Tracelength-1);
-  TH1F *phist2 = new TH1F("h2","h2",Tracelength,0,Tracelength-1);
 
   TSpectrum *s = new TSpectrum();
 	
@@ -123,14 +127,14 @@ int NewScan (){
   float threshold[10] = 
     {   15900,
 	15900,
-	15860,
-	15920,
 	15900,
 	15900,
-	15930,
-	15930,
-	15850,
-	15850
+	15900,
+	15900,
+	15900,
+	15900,
+	15900,
+	15900
     };
 
   // Upper electron band gate
@@ -169,28 +173,44 @@ int NewScan (){
   cout << "Root file name to be created: ";
   cin >> filename;
     
-  cout << "Run file name: ";
+  cout << "Run file directory name: ";
   cin >> prefix;
 
   TFile *ff = new TFile(filename,"RECREATE");
 
   TTree *tt = new TTree("T","Liquid Scintillator Tests");
+
+  TH1F *trace0 = new TH1F("trace0","Trace for channel 0",300,0,1200);
+  TH1F *trace1 = new TH1F("trace1","Trace for channel 1",300,0,1200);
+  TH1F *trace2 = new TH1F("trace2","Trace for channel 2",300,0,1200);
+
+  TH1F *trace0_SG = new TH1F("trace0_SG","SG filtered trace for channel 0",300,0,1200);
+  TH1F *trace0_SG_derv2 = new TH1F("trace0_SG_derv2","2nd derivative of SG filtered trace for channel 0",300,0,1200);
+  TH1F *trace1_SG = new TH1F("trace1_SG","SG filtered trace for channel 1",300,0,1200);
+  TH1F *trace1_SG_derv2 = new TH1F("trace1_SG_derv2","2nd derivative of SG filtered trace for channel 1",300,0,1200);
+
 	
-  tt->Branch("det1",&det1,"l:s:amp:time:psd:trg:ap:td:pp:np");
-  tt->Branch("det2",&det2,"l:s:amp:time:psd:trg:ap:td:pp:np");
-  
+  tt->Branch("det1",&det1,"l:s:amp:cfd:psd:trg:tac:pp");
+  tt->Branch("det2",&det2,"l:s:amp:cfd:psd:trg:tac:pp");
   tt->Branch("runtime",&runtime,"runtime/F");     // Runtime in ms
+
+  tt->Branch("trace0","TH1F",&trace0);
+  tt->Branch("trace1","TH1F",&trace1);
+  tt->Branch("trace2","TH1F",&trace2);
+
+  tt->Branch("trace0_SG","TH1F",&trace0_SG);
+  tt->Branch("trace0_SG_derv2","TH1F",&trace0_SG_derv2);
+  tt->Branch("trace1_SG","TH1F",&trace1_SG);
+  tt->Branch("trace1_SG_derv2","TH1F",&trace1_SG_derv2);
+ 
     
-  	
+  const int numFiles = 2;	
   // Open files
-  for (i = 0; i < 1; i++)
+  for (i = 0; i < numFiles; i++)
   {
-    //sprintf(openfile, "%s_wave%d.txt", prefix, i);
-    sprintf(openfile, "./%s", prefix);
-    
+    sprintf(openfile, "./%s/run0_wave%d.txt", prefix, i);
     cout << " Opening file: " << openfile << endl;
     fp[i].open(openfile, std::ifstream::in);
-    
   }
     
   data = 1;
@@ -205,15 +225,14 @@ int NewScan (){
   while (data)
     {
       multi = 0;
-      
       X = -1;
-      ap = 0;
       beamON = 0;
-      for (j = 0; j < 1; j++)
+      for (j = 0; j < numFiles; j++)
 	{
 	  if(!fp[j].is_open()){data = 0; cout << "Could not open file!!" << endl;}
 	  if(fp[j].is_open())
 	    {
+	      trace_min = 0;
 	      if (!getline(fp[j], line)) {data=0; break; } // Record length
 	      getline(fp[j], line); // Channel number
 	      getline(fp[j], line); // Event number
@@ -229,34 +248,62 @@ int NewScan (){
 	      paraL = -1;
 	      paraS = -1;
 	      trg = 0;
+	      tac = 0;
 	      pposition = -1;
-	      npeaks = 0;
-            
+	                  
 	      // Get traces
 	      for (i = 0; i < Tracelength; i++)
 		{
 		  if (!getline(fp[j], line)) {data = 0; break;}
 		  pulse[i] = 16383 - atof(line.c_str());
-
-		  switch(j) {
-		  case 0 : phist1->SetBinContent(i, pulse[i]); break;
-		  case 1 : phist2->SetBinContent(i, pulse[i]); break;
-		  }
-                
-		  if (j < 10)
-                    if((16838 - pulse[i]) <= threshold[j]) {trg = 1;}
 		}
 
-	      /** Liquid det processing **/
-	      if(Tracelength > 1 && j < 10)
+	      /** Liquid can processing **/
+	      if(Tracelength > 1)
 		{
 		  // Process trace
-		  Analysis->Baseline_restore(pulse, baseline, Tracelength, 10, 3); 
+		  Analysis->Baseline_restore(pulse, baseline, Tracelength, 5, 3); 
 		  Analysis->Parameters(pulse, Tracelength, 3, &CFD, &amplitude, &risetime, &falltime, &width);
                 
-		  // Note this method has been updated to including after pulsing detection
-		  Analysis->PSD_Integration_Afterpulsing(pulse, Tracelength, 12, 50, 5, 15, 50, &pposition, &paraL, &paraS, &ap);
 
+		  // Experimental routines
+		  trace_min = 0;
+		  trace_min_loc = 0;
+		  for (i = 2; i< Tracelength - 2; i++) {
+                    SG_pulse[i] = (-3.*pulse[i-2] + 12.*pulse[i-1] + 17.*pulse[i] + 12.*pulse[i+1] -3.*pulse[i+2])/35.;
+                    SGderv2_pulse[i] = (2.*pulse[i-2] - pulse[i-1] - 2.*pulse[i] - pulse[i+1] + 2.*pulse[i+2])/7.;
+                    trace0->SetBinContent(i, pulse[i]);
+                    trace0_SG->SetBinContent(i, SG_pulse[i]);
+                    trace0_SG_derv2->SetBinContent(i, SGderv2_pulse[i]);
+                    
+                    if(SGderv2_pulse[i] < trace_min) {
+		      trace_min = SGderv2_pulse[i];
+		      trace_min_loc = i;
+                    }
+		  }
+		  
+		  zero_cross = 0;
+		  if (trace_min_loc > 1 && trace_min_loc < Tracelength - 2)  {
+                    for (i = trace_min_loc; i>1; i--) {
+		      if(SGderv2_pulse[i] > 0) {
+			tac = -1.*(SGderv2_pulse[i] - (SGderv2_pulse[i] - SGderv2_pulse[i + 1])*(float)i)/(SGderv2_pulse[i] - SGderv2_pulse[i + 1]);
+			break;
+		      }
+                    }
+                    
+                    for (i = trace_min_loc; i<Tracelength - 2; i++) {
+		      if(SGderv2_pulse[i] > 0) {zero_cross = 1;}
+		      if(SGderv2_pulse[i] < 0 && zero_cross) {
+			tac = -1.*(SGderv2_pulse[i] - (SGderv2_pulse[i] - SGderv2_pulse[i - 1])*(float)i)/(SGderv2_pulse[i] - SGderv2_pulse[i - 1]) - tac;
+			break;
+		      }
+                    }
+		  }
+		  		  
+		  SG_pulse[0] = 0;
+		  SG_pulse[1] = 0;
+		  		  
+		  Analysis->PSD_Integration(pulse, Tracelength, 12, 50, 10, 3, &paraL, &paraS);
 		}
 	      
 	    }
@@ -267,13 +314,9 @@ int NewScan (){
 	    det1.amp = amplitude;
 	    det1.l = paraL;
 	    det1.s = paraS;
-	    det1.time = CFD;
+	    det1.cfd = CFD;
 	    det1.trg = trg;
-			                    
-	    det1.ap = ap;
-   
-	    det1.l = sqrt(det1.l * det1.l)*cal[0];
-	    det1.s = sqrt(det1.s * det1.s)*cal[0];
+	    det1.tac = tac;
 	    det1.psd = det1.s / det1.l;
 	    if (det1.trg){ det1.trg = 1;}
 	    else {det1.trg = 0;}
@@ -290,67 +333,40 @@ int NewScan (){
 	      prevtime = trgtime;
 	    }
                     
-	    //Time trigger difference
-	    det1.td = trgtime - prevtrgtime[0];
-	    if(det1.td < 0) { det1.td = (8*(det1.td + 2147483647))/1.0E3; prevtrgtime[0] = trgtime;}
-	    else { det1.td = (8*(det1.td))/1.0E3; prevtrgtime[0] = trgtime;}
-                    
 	    break;
 
 	  case 1 : 
 	    det2.amp = amplitude;
 	    det2.l = paraL;
 	    det2.s = paraS;
-	    det2.time = CFD;
+	    det2.cfd = CFD;
 	    det2.trg = trg;
-			    
-	    det2.ap = ap;
-                    
-	    det2.l = sqrt(det2.l * det2.l)*cal[1];
-	    det2.s = sqrt(det2.s * det2.s)*cal[1];
+	    det2.tac = tac;
 	    det2.psd = det2.s / det2.l;
 	    if (det2.trg){ det2.trg = 1;}
 	    else {det2.trg = 0;}
 	                     
-	    //Time trigger difference
-	    det2.td = trgtime - prevtrgtime[1];
-	    if(det2.td < 0) { det2.td = (8*(det2.td + 2147483647))/1.0E3; prevtrgtime[1] = trgtime;}
-	    else { det2.td = (8*(det2.td))/1.0E3; prevtrgtime[1] = trgtime;}
-
-	    // Noise and after pulsing detection
-	    if (det2.trg && det2.amp<15500 && det2.psd > (egate[0][0]/sqrt(det2.l) + egate[0][1]*det2.l + egate[0][2]))
-	      {
-		det2.np = s->Search(phist1, 2.0, "", 0.05);
-	      }
-	    else { det2.np = -1; }
-       	    break;
-
-	  
-	  
+	    break;
 	  
 	  }
-               
-            
-            
+                        
         }
-      
-      //if (TEvt > 100) {data = 0;}
-	
+      	
       tt->Fill();
       TEvt++;
       if (TEvt%1000==0) {cout << "\rEvent counter: " << TEvt << flush;}
 	
     }
 	
-	
-  for (i = 0; i < 15; i++)
+  
+  for (i = 0; i < numFiles; i++)
     {
-      if(fp[j].is_open())
-	fp[j].close();
+      if(fp[j].is_open()) fp[j].close();
     }
-  ff->cd(); tt->Write(); 
+  ff->cd();
+  tt->Write(); 
   ff->Close();
-	
+  
   cout << "\nFinsihed! " << TEvt << " events" << endl; 
     
   return 0;
