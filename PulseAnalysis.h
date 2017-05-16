@@ -54,6 +54,7 @@ public :
 	int				Baseline_restore (float*, float*, int, int, int);
 	int     		PSD_Zerocross (float*, int, int, int, float*);	
 	int				Parameters (float*, int, int, float*, float*, float*, float*, float*);	
+	int				Parameters2 (float*, int, int, float*, float*);	
 	int				Time_Pickoff (float*, int, int, int, int, int, float*);
 	int				Derivative(float*, int, int);
 	int				Integral(float*, int);
@@ -410,8 +411,7 @@ int PulseAnalysis::Parameters (float* pulse, int length, int range, float* CFD, 
 		
 	*/
 	
-	*CFD = ((0.5*(*amplitude) - pulse[(k - (int)(range/2))])/((pulse[k + (int)(range/2)] 
-			- pulse[k - (int)(range/2)])/(float)range))+ ((float)k - ((float)range/2));
+	*CFD = ((0.5*(*amplitude) - pulse[(k - (int)(range/2))])/((pulse[k + (int)(range/2)] - pulse[k - (int)(range/2)])/(float)range))+ ((float)k - ((float)range/2));
 	
 		
 	// Risetime by 10-90% Method
@@ -433,7 +433,7 @@ int PulseAnalysis::Parameters (float* pulse, int length, int range, float* CFD, 
 	linear[2] = linear[2]/range;
 	linear[3] = linear[3]/range;
 	
-	*risetime = ((0.1*(*amplitude) - pulse[(k - (int)(range/2))])/((linear[0] 
+	*risetime = ((0.9*(*amplitude) - pulse[(k - (int)(range/2))])/((linear[0] 
 		- linear[1]*linear[2])/(linear[3] - linear[1]*linear[1]))) + (k - (int)(range/2));
 		
 	j = k;
@@ -454,7 +454,7 @@ int PulseAnalysis::Parameters (float* pulse, int length, int range, float* CFD, 
 	linear[2] = linear[2]/range;
 	linear[3] = linear[3]/range;
 	
-	*risetime = *risetime - ((0.9*(*amplitude) - pulse[(k - (int)(range/2))])/((linear[0] 
+	*risetime = *risetime - ((0.1*(*amplitude) - pulse[(k - (int)(range/2))])/((linear[0] 
 		- linear[1]*linear[2])/(linear[3] - linear[1]*linear[1]))) + (k - (int)(range/2));
 
 		
@@ -463,6 +463,58 @@ int PulseAnalysis::Parameters (float* pulse, int length, int range, float* CFD, 
 		*width = 0;
 		
 		return 0;
+}
+
+/** ----------------------------------------------------  
+*	Determine time characteristics of the a pulse
+*		- Fits timing regions using linear regression
+*		  over a user defined range.
+*
+*	Inputs:
+*			pulse - input array
+*			length - the length of pulse
+*			range - range of linear regression for timing
+*	----------------------------------------------------
+*/
+int PulseAnalysis::Parameters2 (float* pulse, int length, int range, float* CFD, float* amplitude)
+{
+	if (length < sizeof(pulse)/sizeof(float)) {return -1;}
+	
+	j = 0;
+	m=0;
+	for (i = 0; i < length; i++)
+	  {
+	    if(pulse[i] > j) { j = (int)pulse[i]; k = i; m = i;}
+	  }
+	
+	*amplitude = pulse[k];
+	
+	// Constant fraction discrimination (CFD) at 50% of amplitude
+	float frac = 0.5;
+	// CFD by 10-90% Method
+	float x10, y10, x90, y90;
+	
+	j = k;
+	for(i = j - 10; i < j; i++)
+	  {
+	    if(pulse[i] < (*amplitude)*0.1) {k = i;}
+	  }
+	
+	x10 = ((pulse[m]*0.1 - pulse[k]) / (pulse[k+1] - pulse[k])) + k;
+	y10 = pulse[m]*0.1;
+	
+	j = m;
+	for(i = j - 10; i < j; i++)
+	  {
+	    if(pulse[i] < (*amplitude)) {k = i;}
+	  }
+	
+	x90 = ((pulse[m]*0.9 - pulse[k]) / (pulse[k+1] - pulse[k])) + k;
+	y90 = pulse[m]*0.9;
+	
+	*CFD = ( pulse[m]*frac - y10 + x10*((y90-y10)/(x90-x10)) ) / ((y90-y10)/(x90-x10));
+	
+	return 0;
 }
 
 /** ----------------------------------------------------  

@@ -263,7 +263,8 @@ int NewScan (){
 		{
 		  // Process trace
 		  Analysis->Baseline_restore(pulse, baseline, Tracelength, 5, 3); 
-		  Analysis->Parameters(pulse, Tracelength, 3, &CFD, &amplitude, &risetime, &falltime, &width);
+		  //Analysis->Parameters(pulse, Tracelength, 3, &CFD, &amplitude, &risetime, &falltime, &width);
+		  Analysis->Parameters2(pulse, Tracelength, 3, &CFD, &amplitude);
                 
 
 		  // Experimental routines
