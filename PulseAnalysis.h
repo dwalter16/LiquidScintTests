@@ -491,16 +491,25 @@ int PulseAnalysis::Parameters2 (float* pulse, int length, int range, float* CFD,
 	
 	// Constant fraction discrimination (CFD) at 50% of amplitude
 	float frac = 0.5;
-	// CFD by 10-90% Method
-	float x10, y10, x90, y90;
+	j = k;
+	for(i = j - 10; i < j; i++)
+	  {
+	    if(pulse[i] > (*amplitude)*0.5) 
+	      {
+		*CFD = (pulse[m]*0.5 - pulse[i] + (pulse[i]-pulse[i-1])*(float)i ) / (pulse[i]-pulse[i-1]);
+	      }
+	  }
 	
+	// CFD by 10-90% Method
+	//float x10, y10, x90, y90;
+	/*
 	j = k;
 	for(i = j - 10; i < j; i++)
 	  {
 	    if(pulse[i] < (*amplitude)*0.1) {k = i;}
 	  }
 	
-	x10 = ((pulse[m]*0.1 - pulse[k]) / (pulse[k+1] - pulse[k])) + k;
+	x10 = ((pulse[m]*0.1 - pulse[k]) / (pulse[k+1] - pulse[k])) + (float)k;
 	y10 = pulse[m]*0.1;
 	
 	j = m;
@@ -509,11 +518,12 @@ int PulseAnalysis::Parameters2 (float* pulse, int length, int range, float* CFD,
 	    if(pulse[i] < (*amplitude)) {k = i;}
 	  }
 	
-	x90 = ((pulse[m]*0.9 - pulse[k]) / (pulse[k+1] - pulse[k])) + k;
+	x90 = ((pulse[m]*0.9 - pulse[k]) / (pulse[k+1] - pulse[k])) + (float)k;
 	y90 = pulse[m]*0.9;
 	
 	*CFD = ( pulse[m]*frac - y10 + x10*((y90-y10)/(x90-x10)) ) / ((y90-y10)/(x90-x10));
-	
+	*/
+
 	return 0;
 }
 

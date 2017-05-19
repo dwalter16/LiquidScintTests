@@ -101,7 +101,7 @@ int NewScan (){
   char 	filename[250],		
     prompt[10],
     openfile[250],
-    prefix[100],
+    prefix[250],
     interrputPrompt;
 			
   Float_t trgtime, prevtime, difftime;
